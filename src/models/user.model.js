@@ -48,6 +48,7 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+//using pre hook provided by mongoose
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
     return next();
@@ -56,8 +57,38 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
+//using instance method: to validate the password
 userSchema.methods.isPasswordCorrect = async function (password) {
   return bcrypt.compare(password, this.password);
+};
+
+//using instance method: to generate JWT Access token
+userSchema.methods.generateJWT = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+      email: this.email,
+      userName: this.userName,
+      fullName: this.fullName,
+    },
+    process.env.ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+    }
+  );
+};
+
+//using instance method: to generate refresh token
+userSchema.methods.generateRefreshToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+    },
+    process.env.REFRESH_TOKEN_SECRET,
+    {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+    }
+  );
 };
 
 export const User = mongoose.model("User", userSchema);
